@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<title>UrbanData-TH · Local OS</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070b14;--panel:#0c1220;--line:#1a2438;--tx:#e8eef8;--mu:#8b9bb4;
+  --acc:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--sb:env(safe-area-inset-bottom);
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px}
+body{display:flex;flex-direction:column;min-height:100dvh;overflow-x:hidden}
+.top{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0a101c;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px}
+.brand img{height:36px;width:auto;max-width:110px;object-fit:contain}
+.brand h1{font-size:.9rem;font-weight:700;line-height:1.2}
+.brand small{display:block;color:var(--mu);font-size:.65rem;font-weight:500}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select.prov{background:#121a2a;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.8rem}
+.badge{padding:4px 10px;border-radius:999px;font-size:.7rem;font-weight:700;background:#1a2438;color:var(--mu)}
+.badge.ok{background:rgba(34,197,94,.15);color:var(--ok)}
+.badge.warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.badge.err{background:rgba(239,68,68,.15);color:var(--bad)}
+button.btn{background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer;font-size:.78rem}
+button.btn:active{opacity:.85}
+.alert-bar{display:none;padding:8px 12px;background:#3b2f0a;border-bottom:2px solid var(--warn);align-items:center;gap:10px;flex-wrap:wrap}
+.alert-bar.show{display:flex}
+.alert-bar.level-crit{background:#3b1212;border-color:var(--bad)}
+.alert-bar .tag{font-weight:800;font-size:.7rem}
+.shell{flex:1;display:grid;grid-template-columns:minmax(200px,260px) 1fr minmax(200px,280px);grid-template-rows:minmax(320px,1fr) auto;gap:8px;padding:8px;min-height:0;overflow:auto}
+.left,.right{display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
+.map-zone{position:relative;grid-column:2;grid-row:1;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#060a12;min-height:320px}
+#map{width:100%;height:100%;min-height:320px;background:#0a1220}
+.bottom{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.pt{font-size:.72rem;font-weight:700;color:var(--mu);margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pt .lv{margin-left:auto;font-size:.65rem;color:var(--acc)}
+.temp{font-size:1.8rem;font-weight:800}
+.muted{color:var(--mu);font-size:.72rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.b{background:#0a1220;border-radius:8px;padding:6px 8px}
+.b label{display:block;font-size:.62rem;color:var(--mu)}
+.b strong{font-size:.9rem}
+.list{display:flex;flex-direction:column;gap:4px;max-height:160px;overflow:auto}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(26,36,56,.8);font-size:.75rem}
+.row small{display:block;color:var(--mu);font-size:.65rem}
+.chip{flex-shrink:0;padding:2px 7px;border-radius:999px;font-size:.62rem;font-weight:700;background:#1a2438;color:var(--mu)}
+.chip.ok{background:rgba(34,197,94,.15);color:var(--ok)}
+.chip.warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.chip.bad{background:rgba(239,68,68,.15);color:var(--bad)}
+.chip.info{background:rgba(56,189,248,.15);color:var(--acc)}
+.note{font-size:.62rem;color:var(--mu);margin-top:6px;line-height:1.4}
+.note a{color:#7dd3fc}
+.chart-box{height:120px}
+.risk{display:inline-block;padding:3px 8px;border-radius:6px;font-size:.65rem;font-weight:600;margin-bottom:6px}
+.risk.low{background:rgba(34,197,94,.15);color:var(--ok)}
+.risk.med{background:rgba(245,158,11,.15);color:var(--warn)}
+.risk.high{background:rgba(239,68,68,.15);color:var(--bad)}
+.aq-scale{display:flex;gap:3px;margin-top:6px;font-size:.55rem}
+.aq-scale span{flex:1;text-align:center;padding:2px;border-radius:4px;color:#000;font-weight:700}
+.aq-scale .g{background:#22c55e}.aq-scale .y{background:#eab308}.aq-scale .o{background:#f59e0b}.aq-scale .r{background:#ef4444}.aq-scale .pp{background:#7c3aed;color:#fff}
+.map-tools{position:absolute;top:10px;right:10px;z-index:1000;max-width:min(92%,320px);
+  background:rgba(8,14,24,.75);border:1px solid rgba(120,160,220,.28);border-radius:12px;
+  backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.map-tools-head{padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:.78rem;font-weight:700}
+.map-tools-body{padding:8px 10px 10px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(120,160,220,.15);max-height:40vh;overflow:auto}
+.map-tools-body.collapsed{display:none}
+.map-tools-body button,.map-tools-body label{
+  background:rgba(20,30,48,.7);border:1px solid rgba(120,160,220,.22);color:#c8d4e8;
+  border-radius:8px;padding:5px 8px;font-size:.68rem;cursor:pointer}
+.map-tools-body button.on{background:rgba(56,189,248,.22);border-color:rgba(56,189,248,.45);color:#7dd3fc}
+.map-foot{position:absolute;bottom:0;left:0;right:0;padding:4px 8px;background:rgba(0,0,0,.45);font-size:.6rem;color:#9aa8c0;display:flex;gap:6px;flex-wrap:wrap;z-index:500}
+.cctv-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:200px;overflow:auto}
+.cctv-card{background:#0a1220;border-radius:8px;padding:6px;font-size:.65rem}
+.cctv-card a{color:#7dd3fc;text-decoration:none}
+.mk{background:rgba(6,10,18,.72);border:1.5px solid;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:700;white-space:nowrap;opacity:.8!important}
+.mk-dot{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px currentColor;opacity:.8}
+.mk-wind{width:28px;height:28px;border-radius:50%;background:rgba(14,30,50,.7);border:1.5px solid #38bdf8;display:grid;place-items:center;opacity:.8;position:relative}
+.mk-wind .arr{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:14px solid #38bdf8}
+.mk-wind .spd{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#7dd3fc;white-space:nowrap}
+.leaflet-marker-icon{opacity:.8!important}
+.leaflet-marker-icon:hover{opacity:1!important}
+.foot{text-align:center;padding:6px;font-size:.55rem;color:var(--mu);border-top:1px solid var(--line)}
+#bootErr{display:none;padding:20px;color:#fca5a5;background:#1a0a0a;border:1px solid #ef4444;margin:12px;border-radius:12px}
+@media(max-width:900px){
+  .shell{display:flex;flex-direction:column;height:auto;overflow:visible}
+  .map-zone{order:-1;height:50vh;min-height:280px}
+  #map{height:100%;min-height:260px}
+  .left,.right,.bottom{width:100%;max-height:none;overflow:visible}
+}
+
+.lyr-group{width:100%;margin-bottom:6px}
+.lyr-h{font-size:.62rem;font-weight:700;color:#7dd3fc;margin:4px 0 4px;letter-spacing:.02em;opacity:.9}
+.map-tools{max-width:min(94%,280px)}
+.map-tools-body{max-height:min(55vh,420px);overflow:auto}
+.map-tools-body label{display:flex;align-items:center;gap:6px;width:100%}
+.map-tools-body button{margin:2px 2px 2px 0}
+
+
+@media(max-width:900px){
+  .map-tools{top:8px;right:8px;left:8px;max-width:none;width:auto}
+  .map-tools-body{max-height:35vh}
+  .map-zone{height:45vh;min-height:240px}
+  #map{min-height:220px}
+  .top{flex-wrap:wrap}
+  .top-actions{width:100%;justify-content:flex-start}
+}
+
+</style>
+</head>
+<body>
+<div id="bootErr"></div>
+<header class="top">
+  <div class="brand">
+    <img id="logoImg" alt="UrbanData-TH" height="36" src="data:image/png;base64,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">
+    <div><h1>UrbanData-TH · Local OS</h1><small>WAR ROOM · ภาคเหนือ + กทม.</small></div>
+  </div>
+  <div class="top-actions">
+    <select class="prov" id="provSelect"></select>
+    <span class="badge" id="status">…</span>
+    <span class="badge" id="clock">–</span>
+    <button class="btn" type="button" id="btnRefresh">↻ REFRESH</button>
+  </div>
+</header>
+<div class="alert-bar" id="alertBar">
+  <span class="tag" id="alertTag">WARNING</span>
+  <span id="alertMsg">–</span>
+  <span style="margin-left:auto;font-size:.7rem" id="alertTime"></span>
+  <button class="btn" type="button" id="btnDismiss" style="background:#333">ปิดเสียง</button>
+</div>
+<div class="shell">
+  <div class="left">
+    <div class="panel">
+      <div class="pt">อากาศ <span class="lv" id="omLive">–</span></div>
+      <div class="temp" id="temp">–°</div>
+      <div class="muted" id="wxLine">Open-Meteo</div>
+      <div style="margin:8px 0;display:flex;align-items:center;gap:10px">
+        <div id="needle" style="width:36px;height:36px;border-radius:50%;border:2px solid #1a2438;display:grid;place-items:center">
+          <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:14px solid #38bdf8;transform-origin:center 70%"></div>
+        </div>
+        <div><div id="windSp">–</div><div class="muted" id="windDir">ทิศ –</div></div>
+      </div>
+      <div class="grid2">
+        <div class="b"><label>ความชื้น</label><strong id="hum">–</strong></div>
+        <div class="b"><label>ฝนตอนนี้</label><strong id="rainNow">–</strong></div>
+        <div class="b"><label>ฝน 7 วัน</label><strong id="rainSum">–</strong></div>
+        <div class="b"><label>ความกด</label><strong id="pres">–</strong></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="pt">ฝุ่น / AQI <span class="lv" id="aqLive">–</span></div>
+      <div class="temp" id="aqi" style="font-size:1.5rem">–</div>
+      <div class="muted" id="aqLine">CAMS · UrbanData</div>
+      <div class="grid2">
+        <div class="b"><label>PM2.5</label><strong id="pm25">–</strong></div>
+        <div class="b"><label>PM10</label><strong id="pm10">–</strong></div>
+      </div>
+      <div class="aq-scale"><span class="g">ดี</span><span class="y">ปานกลาง</span><span class="o">มีผล</span><span class="r">ไม่ดี</span><span class="pp">อันตราย</span></div>
+    </div>
+    <div class="panel">
+      <div class="pt">🚨 แจ้งเตือน <span class="lv" id="alertLive">–</span>
+        <button type="button" id="btnClearAlerts" style="margin-left:auto;font-size:.65rem;padding:3px 8px;border-radius:6px;border:1px solid rgba(248,113,113,.4);background:rgba(239,68,68,.15);color:#fca5a5;cursor:pointer">ลบทั้งหมด</button>
+      </div>
+      <div class="list" id="alertList"><div class="row"><span>กำลังโหลด…</span></div></div>
+      <div class="note">แตะรายการเพื่อไปตำแหน่งบนแผนที่ · ฉุกเฉินรุนแรงขึ้นทุกจังหวัด</div>
+    </div>
+    <div class="panel">
+      <div class="pt">🌍 แผ่นดินไหว <span class="lv" id="eqLive">–</span></div>
+      <div class="list" id="eqList">กำลังโหลด…</div>
+      <div class="note">M≥2.5 ภูมิภาค · M≥5.5 ทั่วโลก · USGS 24 ชม.</div>
+    </div>
+    <div class="panel">
+      <div class="pt">ระดับน้ำ · ลิมิต</div>
+      <div class="list" id="stList"></div>
+    </div>
+    <div class="panel">
+      <div class="pt">🔥 จุดความร้อน (UrbanData) <span class="lv" id="urbanHotLive">–</span></div>
+      <div class="list" id="urbanHotBox">กำลังโหลด…</div>
+      <div class="note">API ทีม UrbanData-TH</div>
+    </div>
+    <div class="panel">
+      <div class="pt">🇹🇭 ThaiWater / สสน. <span class="lv" id="twLive">–</span></div>
+      <div class="list" id="twBox">กำลังโหลด…</div>
+      <div class="note">ฝนสถานีในจังหวัด · <a href="https://www.thaiwater.net" target="_blank" rel="noopener">thaiwater.net</a></div>
+    </div>
+    <div class="panel">
+      <div class="pt">⚠️ เตือนน้ำป่า HII <span class="lv" id="hiiLive">–</span></div>
+      <div class="list" id="hiiBox">กำลังโหลด…</div>
+      <div class="note">ความเสี่ยงน้ำท่วมฉับพลัน 24 ชม. · สสน.</div>
+    </div>
+    <div class="panel">
+      <div class="pt">เขื่อน RID <span class="lv" id="ridLive">–</span></div>
+      <div class="list" id="dams">…</div>
+    </div>
+  </div>
+
+  <div class="map-zone">
+    <div class="map-tools" id="mapTools">
+      <div class="map-tools-head" id="layerHead"><strong>☰ เปิด/ปิด Layer</strong><span id="layerChev">▼</span></div>
+      <div class="map-tools-body" id="mapToolsBody">
+        <div class="lyr-group"><div class="lyr-h">แผนที่ฐาน</div>
+          <button type="button" class="on" data-bm="sat">ดาวเทียม</button>
+          <button type="button" data-bm="osm">ถนน</button>
+          <button type="button" data-bm="dark">มืด</button>
+        </div>
+        <div class="lyr-group"><div class="lyr-h">ตรวจวัด</div>
+          <label><input type="checkbox" checked data-lyr="water"> น้ำ/ฝนสถานี</label>
+          <label><input type="checkbox" checked data-lyr="wind"> ลม</label>
+          <label><input type="checkbox" checked data-lyr="traffic"> จราจร</label>
+          <label><input type="checkbox" checked data-lyr="cctv"> CCTV</label>
+        </div>
+        <div class="lyr-group"><div class="lyr-h">เหตุการณ์</div>
+          <label><input type="checkbox" checked data-lyr="acc"> อุบัติเหตุ</label>
+          <label><input type="checkbox" checked data-lyr="build"> ก่อสร้าง</label>
+          <label><input type="checkbox" checked data-lyr="crime"> อาชญากรรม</label>
+          <label><input type="checkbox" checked data-lyr="quake"> แผ่นดินไหว</label>
+          <label><input type="checkbox" checked data-lyr="fire"> จุดร้อน</label>
+        </div>
+        <div class="lyr-group"><div class="lyr-h">ฝน · เรดาร์</div>
+          <label><input type="checkbox" checked data-lyr="rain"> เรดาร์ฝน</label>
+        </div>
+        <div class="lyr-group"><div class="lyr-h">GISTDA น้ำท่วม</div>
+          <label><input type="checkbox" checked data-lyr="g1"> น้ำท่วม 1 วัน</label>
+          <label><input type="checkbox" data-lyr="g3"> น้ำท่วม 3 วัน</label>
+          <label><input type="checkbox" data-lyr="g7"> น้ำท่วม 7 วัน</label>
+          <label><input type="checkbox" data-lyr="gfreq"> น้ำท่วมซ้ำซาก</label>
+          <label><input type="checkbox" data-lyr="ghy"> ผักตบชวา</label>
+        </div>
+      </div>
+    </div>
+    <div id="map"></div>
+    <div class="map-foot"><span id="gpsInfo">GPS…</span><span>·</span><span id="autoInfo">อัปเดตทุก 5 นาที</span><span>·</span><span>UrbanData-TH Local OS</span></div>
+  </div>
+
+  <div class="right">
+    <div class="panel">
+      <div class="pt">น้ำท่วม 7 วัน <span class="lv" id="flLive">–</span></div>
+      <div id="riskBadge" class="risk low">ความเสี่ยง: –</div>
+      <div class="chart-box"><canvas id="chart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="pt">🚗 สภาพจราจร <span class="lv" id="trafficLive">–</span></div>
+      <div class="list" id="trafficBox">กำลังโหลด…</div>
+      <div class="note"><a href="https://traffic.longdo.com" target="_blank" rel="noopener">Longdo</a> · <a href="https://www.bmatraffic.com" target="_blank" rel="noopener">BMA</a> · <a href="https://highwaytraffic.go.th" target="_blank" rel="noopener">ทางหลวง</a></div>
+    </div>
+    <div class="panel">
+      <div class="pt">📹 CCTV</div>
+      <div class="cctv-grid" id="cctvGrid"></div>
+    </div>
+    <div class="panel">
+      <div class="pt">💥 จุดเสี่ยงอุบัติเหตุ</div>
+      <div class="list" id="accBox"></div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="panel">
+      <div class="pt">แผนที่น้ำ · เรดาร์</div>
+      <div class="note">ติ๊ก Layer «เรดาร์ฝน» · GISTDA เชื่อมแล้ว · <a href="https://chiangmai.thaiwater.net/dashboard" target="_blank" rel="noopener">ThaiWater</a> · <a href="https://disaster.gistda.or.th" target="_blank" rel="noopener">GISTDA</a></div>
+    </div>
+    <div class="panel">
+      <div class="pt">🚧 ก่อสร้าง</div>
+      <div class="list" id="buildBox"></div>
+    </div>
+    <div class="panel">
+      <div class="pt">⚠ โซนตัวอย่าง</div>
+      <div class="list" id="crimeBox"></div>
+    </div>
+  </div>
+</div>
+<footer class="foot">UrbanData-TH · Local OS · เชื่อม API ทีม dashboard.urbandata-th.com · แนะนำเปิดผ่าน HTTPS</footer>
+
+<script>
+
+function waitForLeaflet(cb, tries){
+  tries = tries||0;
+  if(typeof L !== 'undefined' && L.map){ cb(); return; }
+  if(tries>50){
+    var el=document.getElementById('bootErr');
+    if(el){
+      el.style.display='block';
+      el.innerHTML='โหลดแผนที่ (Leaflet) ไม่สำเร็จ<br>สาเหตุที่พบบ่อย: เปิดจากไฟล์ในเครื่องบนมือถือแล้ว CDN ถูกบล็อก<br><b>วิธีแก้:</b> อัปโหลดไฟล์ขึ้นเว็บ HTTPS แล้วเปิดลิงก์ หรือเปิดผ่าน Wi‑Fi แล้วรีเฟรช';
+    }
+    return;
+  }
+  setTimeout(function(){ waitForLeaflet(cb, tries+1); }, 100);
+}
+
+window.onerror = function(msg, src, line){
+  var el=document.getElementById('bootErr');
+  if(el){ el.style.display='block'; el.textContent='JS Error: '+msg+' (line '+line+')'; }
+  console.error(msg, src, line);
+};
+try {
+
+var PROVS=[
+  {id:'cm',n:'เชียงใหม่',lat:18.7883,lon:98.9853,z:12},
+  {id:'cr',n:'เชียงราย',lat:19.9105,lon:99.8406,z:12},
+  {id:'lp',n:'ลำปาง',lat:18.2883,lon:99.4909,z:12},
+  {id:'ln',n:'ลำพูน',lat:18.5770,lon:99.0087,z:12},
+  {id:'mr',n:'แม่ฮ่องสอน',lat:19.3020,lon:97.9650,z:11},
+  {id:'nan',n:'น่าน',lat:18.7830,lon:100.7790,z:11},
+  {id:'ph',n:'พะเยา',lat:19.1660,lon:99.9000,z:11},
+  {id:'pr',n:'แพร่',lat:18.1450,lon:100.1410,z:12},
+  {id:'ut',n:'อุตรดิตถ์',lat:17.6200,lon:100.0990,z:11},
+  {id:'tk',n:'ตาก',lat:16.8840,lon:99.1260,z:11},
+  {id:'st',n:'สุโขทัย',lat:17.0056,lon:99.8264,z:12},
+  {id:'pl',n:'พิษณุโลก',lat:16.8211,lon:100.2659,z:12},
+  {id:'bkk',n:'กรุงเทพมหานคร',lat:13.7563,lon:100.5018,z:11}
+];
+var cur=PROVS[0];
+var loading=false;
+var alertHistory=[];
+var alertMuted=false;
+var clearedKeys={};
+var chart=null;
+var rainTileLayer=null;
+var URBAN_API='https://dashboard.urbandata-th.com/api';
+var URBAN_PROV={cm:'ChiangMai',cr:'ChiangRai',lp:'Lampang',ln:'Lamphun',mr:'MaeHongSon',nan:'Nan',ph:'Phayao',pr:'Phrae',ut:'Uttaradit',tk:'Tak',st:'Sukhothai',pl:'Phitsanulok',bkk:'BangkokMetropolis'};
+var GISTDA_KEY='FanQy9d70H0X2B2nCl0szNukpEyaSCoduoj4Dgtre4patE7QuSQFfhC2NN7jVCCX';
+var gistdaFloodLayer=null;
+
+var STATIONS=[
+  {id:'P.1',n:'นวรัฐ',lat:18.787,lon:99.005,lv:1.2,th:[3.5,4.5,5.5],prov:'cm'},
+  {id:'P.67',n:'สะพานนวรัฐ',lat:18.788,lon:99.008,lv:1.5,th:[3.5,4.5,5.5],prov:'cm'},
+  {id:'CM2',n:'แม่เหียะ',lat:18.76,lon:98.96,lv:0.9,th:[2.5,3.5,4.5],prov:'cm'}
+];
+var ACC=[{n:'แยกประตูช้าง',lat:18.788,lon:98.993,prov:'cm'},{n:'ซุปเปอร์ไฮเวย์',lat:18.76,lon:99.00,prov:'cm'},{n:'อนุสาวรีย์ชัย',lat:13.7649,lon:100.5383,prov:'bkk'},{n:'แยกอโศก',lat:13.7373,lon:100.5603,prov:'bkk'}];
+var BUILD=[{n:'ซ่อมห้วยแก้ว',lat:18.802,lon:98.968,prov:'cm'},{n:'สะพานนวรัฐ',lat:18.788,lon:99.008,prov:'cm'}];
+var CRIME=[{n:'ช้างคลาน',lat:18.785,lon:98.999,prov:'cm'},{n:'นิมมาน',lat:18.796,lon:98.968,prov:'cm'}];
+var TRAFFIC_ROADS={
+  cm:[{n:'ห้วยแก้ว',lat:18.802,lon:98.968,base:0.55},{n:'นิมมาน',lat:18.796,lon:98.968,base:0.65},{n:'ซุปเปอร์ไฮเวย์',lat:18.76,lon:99.00,base:0.5},{n:'ประตูช้าง',lat:18.788,lon:98.993,base:0.7}],
+  bkk:[{n:'สุขุมวิท',lat:13.736,lon:100.560,base:0.8},{n:'วิภาวดี',lat:13.800,lon:100.560,base:0.7},{n:'รัชดา',lat:13.780,lon:100.570,base:0.72}],
+  cr:[{n:'พหลโยธิน',lat:19.90,lon:99.83,base:0.45}]
+};
+var CCTV_META=[
+  {name:'กรมทางหลวง',lat:18.80,lon:99.00,url:'https://highwaytraffic.go.th'},
+  {name:'BMA Traffic',lat:13.7563,lon:100.5018,url:'https://www.bmatraffic.com'},
+  {name:'พัทยา Live',lat:12.9236,lon:100.8825,url:'https://livestream.pattaya.go.th/'},
+  {name:'ประตูช้าง',lat:18.788,lon:98.993,url:'https://highwaytraffic.go.th'}
+];
+
+function $(id){ return document.getElementById(id); }
+function dirT(d){
+  if(d==null||isNaN(d)) return '–';
+  var dirs=['เหนือ','ตะวันออกเฉียงเหนือ','ตะวันออก','ตะวันออกเฉียงใต้','ใต้','ตะวันตกเฉียงใต้','ตะวันตก','ตะวันตกเฉียงเหนือ'];
+  return dirs[Math.round(d/45)%8];
+}
+function aqiC(v){
+  if(v==null||isNaN(v)) return '#6b7a94';
+  if(v<=50) return '#22c55e';
+  if(v<=100) return '#eab308';
+  if(v<=150) return '#f59e0b';
+  if(v<=200) return '#ef4444';
+  return '#7c3aed';
+}
+function roadCongestion(base){
+  var h=new Date().getHours();
+  var peak=(h>=7&&h<=9)||(h>=16&&h<=19);
+  var mid=(h>=11&&h<=13)||(h>=20&&h<=21);
+  return Math.min(1, base*(peak?1:mid?0.7:0.35)+(peak?0.1:0));
+}
+function congestionMeta(score){
+  if(score>=0.75) return {txt:'รถติดหนัก',chip:'bad',col:'#ef4444'};
+  if(score>=0.5) return {txt:'รถติดปานกลาง',chip:'warn',col:'#f59e0b'};
+  if(score>=0.3) return {txt:'หนาแน่นเล็กน้อย',chip:'info',col:'#eab308'};
+  return {txt:'คล่องตัว',chip:'ok',col:'#22c55e'};
+}
+function mk(ico,t,col,mode){
+  mode=mode||'pill';
+  if(mode==='dot'){
+    return L.divIcon({className:'',html:'<div class="mk-dot" style="color:'+col+';background:'+col+'"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+  }
+  var label=(ico?ico+' ':'')+(t||'');
+  return L.divIcon({className:'',html:'<div class="mk" style="border-color:'+col+';color:'+col+'">'+label+'</div>',iconSize:[null,22],iconAnchor:[20,11]});
+}
+function windIco(deg,sp){
+  return L.divIcon({
+    className:'',
+    html:'<div class="mk-wind" style="transform:rotate('+deg+'deg)"><div class="arr"></div><div class="spd" style="transform:rotate('+(-deg)+'deg) translateX(-50%)">'+Math.round(sp)+'</div></div>',
+    iconSize:[28,28],iconAnchor:[14,14]
+  });
+}
+
+waitForLeaflet(function(){
+try{
+var map=L.map('map',{zoomControl:true}).setView([cur.lat,cur.lon],cur.z);
+var tiles={
+  sat:L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'Esri'}),
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',{maxZoom:18,opacity:0.7})
+  ]),
+  osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OSM'}),
+  dark:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'Carto'})
+};
+var bm='sat';
+tiles.sat.addTo(map);
+var Lyr={
+  water:L.layerGroup(),wind:L.layerGroup(),fire:L.layerGroup(),acc:L.layerGroup(),
+  build:L.layerGroup(),crime:L.layerGroup(),cctv:L.layerGroup(),quake:L.layerGroup(),
+  rain:L.layerGroup(),traffic:L.layerGroup(),floodzone:L.layerGroup(),gistda:L.layerGroup(),g1:L.layerGroup(),g3:L.layerGroup(),g7:L.layerGroup(),gfreq:L.layerGroup(),ghy:L.layerGroup()
+};
+Object.keys(Lyr).forEach(function(k){ map.addLayer(Lyr[k]); });
+
+function setBm(name){
+  Object.keys(tiles).forEach(function(k){ if(map.hasLayer(tiles[k])) map.removeLayer(tiles[k]); });
+  tiles[name].addTo(map); bm=name;
+  document.querySelectorAll('[data-bm]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-bm')===name); });
+  // restore overlay layers according to checkboxes (basemap switch must not drop GISTDA)
+  restoreOverlayVisibility();
+}
+function restoreOverlayVisibility(){
+  Object.keys(Lyr).forEach(function(k){
+    var inp=document.querySelector('input[data-lyr="'+k+'"]');
+    var want = inp ? inp.checked : true;
+    if(!Lyr[k]) return;
+    if(want){
+      if(!map.hasLayer(Lyr[k])) map.addLayer(Lyr[k]);
+      try{
+        if(Lyr[k].eachLayer){
+          Lyr[k].eachLayer(function(ly){
+            if(ly.bringToFront) ly.bringToFront();
+          });
+        }
+        if(Lyr[k].bringToFront) Lyr[k].bringToFront();
+      }catch(e){}
+    } else {
+      if(map.hasLayer(Lyr[k])) map.removeLayer(Lyr[k]);
+    }
+  });
+}
+function tog(name, on){
+  if(!Lyr[name]) return;
+  if(on) map.addLayer(Lyr[name]); else map.removeLayer(Lyr[name]);
+}
+function clearL(){
+  Object.keys(Lyr).forEach(function(k){
+    // keep GISTDA WMS until loadGISTDAFlood replaces them
+    if(k==='g1'||k==='g3'||k==='g7'||k==='gfreq'||k==='ghy'||k==='gistda'||k==='rain') return;
+    Lyr[k].clearLayers();
+  });
+}
+function toggleLayers(){
+  var body=$('mapToolsBody');
+  var chev=$('layerChev');
+  if(!body) return;
+  body.classList.toggle('collapsed');
+  if(chev) chev.textContent=body.classList.contains('collapsed')?'▶':'▼';
+}
+
+async function fetchJSON(url, ms){
+  ms=ms||12000;
+  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  var t=setTimeout(function(){ try{ if(ctrl) ctrl.abort(); }catch(e){} }, ms);
+  try{
+    var opts={cache:'no-store', mode:'cors', credentials:'omit'};
+    if(ctrl) opts.signal=ctrl.signal;
+    var r=await fetch(url, opts);
+    clearTimeout(t);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return await r.json();
+  }catch(e){ clearTimeout(t); throw e; }
+}
+
+function populate(){
+  STATIONS.filter(function(s){ return s.prov===cur.id||cur.id==='cm'; }).forEach(function(s){
+    var col='#38bdf8';
+    L.marker([s.lat,s.lon],{icon:mk('💧',s.id,col)}).bindPopup('<b>'+s.id+' '+s.n+'</b><br>ระดับ ~'+s.lv+' ม.<br>ลิมิต: เฝ้า '+s.th[0]+' / วิกฤต '+s.th[2]+' ม.').addTo(Lyr.water);
+  });
+  $('stList').innerHTML=STATIONS.filter(function(s){return s.prov===cur.id||cur.id==='cm';}).map(function(s){
+    return '<div class="row"><span><b>'+s.id+'</b> '+s.n+'<small>ลิมิต '+s.th[0]+' / '+s.th[2]+' ม.</small></span><span class="chip info">'+s.lv+' ม.</span></div>';
+  }).join('')||'<div class="row">ไม่มีสถานีในจังหวัดนี้</div>';
+
+  ACC.filter(function(a){return a.prov===cur.id;}).forEach(function(a){
+    L.marker([a.lat,a.lon],{icon:mk('','','#f97316','dot')}).bindPopup(a.n).addTo(Lyr.acc);
+  });
+  $('accBox').innerHTML=ACC.filter(function(a){return a.prov===cur.id;}).map(function(a){
+    return '<div class="row"><span>💥 '+a.n+'</span><span class="chip warn">จุดเสี่ยง</span></div>';
+  }).join('')||'<div class="row">–</div>';
+
+  BUILD.filter(function(b){return b.prov===cur.id;}).forEach(function(b){
+    L.marker([b.lat,b.lon],{icon:mk('','','#eab308','dot')}).bindPopup(b.n).addTo(Lyr.build);
+  });
+  $('buildBox').innerHTML=BUILD.filter(function(b){return b.prov===cur.id;}).map(function(b){
+    return '<div class="row"><span>🚧 '+b.n+'</span><span class="chip info">ก่อสร้าง</span></div>';
+  }).join('')||'<div class="row">–</div>';
+
+  CRIME.filter(function(c){return c.prov===cur.id;}).forEach(function(c){
+    L.circle([c.lat,c.lon],{radius:250,color:'#a78bfa',fillColor:'#a78bfa',fillOpacity:0.12,weight:1}).bindPopup(c.n).addTo(Lyr.crime);
+  });
+  $('crimeBox').innerHTML=CRIME.filter(function(c){return c.prov===cur.id;}).map(function(c){
+    return '<div class="row"><span>⚠ '+c.n+'</span><span class="chip">ตัวอย่าง</span></div>';
+  }).join('')||'<div class="row">–</div>';
+
+  var roads=TRAFFIC_ROADS[cur.id]||[];
+  roads.forEach(function(rd){
+    var meta=congestionMeta(roadCongestion(rd.base));
+    L.marker([rd.lat,rd.lon],{icon:mk('🚗','',meta.col)}).bindPopup('<b>'+rd.n+'</b><br>'+meta.txt+'<br><small>ประมาณการช่วงเร่งด่วน</small>').addTo(Lyr.traffic);
+  });
+  updateTrafficBox(roads);
+
+  $('cctvGrid').innerHTML=CCTV_META.map(function(c){
+    L.marker([c.lat,c.lon],{icon:mk('📹','','#38bdf8')}).bindPopup('<b>'+c.name+'</b><br><a href="'+c.url+'" target="_blank">เปิดกล้อง</a>').addTo(Lyr.cctv);
+    return '<div class="cctv-card"><b>'+c.name+'</b><br><a href="'+c.url+'" target="_blank" rel="noopener">เปิดลิงก์</a></div>';
+  }).join('');
+
+}
+
+function updateTrafficBox(roads){
+  var box=$('trafficBox');
+  if(!box) return;
+  var longdo='';
+  if(window._longdoIndex!=null){
+    var ix=window._longdoIndex;
+    longdo='<div class="row"><span><b>ดัชนี Longdo (กทม.)</b><small>ค่าจริง 0–10</small></span><span class="chip '+(ix>=7?'bad':ix>=4?'warn':'ok')+'">'+ix+'/10</span></div>';
+  }
+  var lines=(roads||[]).map(function(rd){
+    var meta=congestionMeta(roadCongestion(rd.base));
+    return '<div class="row"><span>🚗 '+rd.n+'</span><span class="chip '+meta.chip+'">'+meta.txt+'</span></div>';
+  }).join('');
+  box.innerHTML=longdo+lines||'<div class="row">–</div>';
+}
+
+function pushAlert(level,title,detail,source,lat,lon){
+  var key=(title||'')+'|'+(detail||'');
+  if(clearedKeys[key]) return;
+  var id=level+'|'+key;
+  if(alertHistory.some(function(a){ return a.id===id && Date.now()-a.ts<10*60*1000; })) return;
+  var item={level:level,title:title,detail:detail,source:source,ts:Date.now(),id:id,lat:lat,lon:lon};
+  alertHistory.unshift(item);
+  if(alertHistory.length>40) alertHistory.pop();
+  renderAlerts();
+  if(!alertMuted && level!=='info') showAlertBar(item);
+}
+
+function renderAlerts(){
+  var list=$('alertList');
+  if(!list) return;
+  var active=alertHistory.filter(function(a){
+    return Date.now()-a.ts<60*60*1000 && (a.level==='crit'||a.level==='warn') && !clearedKeys[(a.title||'')+'|'+(a.detail||'')];
+  });
+  var cnt=$('alertCount'); // optional
+  var live=$('alertLive');
+  if(live) live.textContent=active.some(function(a){return a.level==='crit';})?'มีวิกฤต':active.length?'มีแจ้งเตือน':'ปกติ';
+  if(!active.length){
+    list.innerHTML='<div class="row"><span>ยังไม่มีเหตุฉุกเฉิน</span><span class="chip ok">ปกติ</span></div>';
+    clearAlertMarkers();
+    return;
+  }
+  list.innerHTML=active.slice(0,12).map(function(a){
+    var chip=a.level==='crit'?'bad':a.level==='warn'?'warn':'info';
+    var label=a.level==='crit'?'วิกฤต':'เฝ้าระวัง';
+    var t=new Date(a.ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    return '<div class="row '+a.level+'" style="cursor:pointer" data-lat="'+(a.lat||'')+'" data-lon="'+(a.lon||'')+'" data-title="'+(a.title||'').replace(/"/g,'&quot;')+'" data-detail="'+(a.detail||'').replace(/"/g,'&quot;')+'"><span><b>'+a.title+'</b><small>'+(a.detail||'')+' · '+(a.source||'')+' · '+t+'</small></span><span class="chip '+chip+'">'+label+'</span></div>';
+  }).join('');
+  list.querySelectorAll('.row[data-lat]').forEach(function(el){
+    el.onclick=function(){
+      var lat=parseFloat(el.getAttribute('data-lat'));
+      var lon=parseFloat(el.getAttribute('data-lon'));
+      focusAlert(lat,lon,el.getAttribute('data-title'),el.getAttribute('data-detail'));
+    };
+  });
+  placeAlertMarkers(active);
+}
+
+function clearAlertMarkers(){
+  if(!window._alertLayer){ window._alertLayer=L.layerGroup().addTo(map); }
+  window._alertLayer.clearLayers();
+}
+function placeAlertMarkers(list){
+  clearAlertMarkers();
+  (list||[]).forEach(function(a){
+    if(a.lat==null||a.lon==null||isNaN(a.lat)||isNaN(a.lon)) return;
+    var col=a.level==='crit'?'#ef4444':'#f59e0b';
+    L.marker([a.lat,a.lon],{icon:mk('⚠',a.level==='crit'?'วิกฤต':'เฝ้า',col),zIndexOffset:800})
+      .bindPopup('<b>'+a.title+'</b><br>'+(a.detail||'')+'<br><small>'+(a.source||'')+'</small>')
+      .addTo(window._alertLayer);
+  });
+}
+function focusAlert(lat,lon,title,detail){
+  if(lat==null||lon==null||isNaN(lat)||isNaN(lon)) return;
+  map.setView([lat,lon], Math.max(map.getZoom(),13));
+  L.popup().setLatLng([lat,lon]).setContent('<b>'+(title||'แจ้งเตือน')+'</b><br>'+(detail||'')).openOn(map);
+}
+function showAlertBar(item){
+  var bar=$('alertBar');
+  if(!bar) return;
+  bar.className='alert-bar show level-'+(item.level==='crit'?'crit':'warn');
+  $('alertTag').textContent=item.level==='crit'?'CRITICAL':'WARNING';
+  $('alertMsg').textContent=item.title+(item.detail?' — '+item.detail:'');
+  $('alertTime').textContent=new Date(item.ts).toLocaleTimeString('th-TH');
+}
+function clearAllAlerts(){
+  alertHistory.forEach(function(a){ clearedKeys[(a.title||'')+'|'+(a.detail||'')]=1; });
+  alertHistory=[];
+  renderAlerts();
+  var bar=$('alertBar'); if(bar) bar.className='alert-bar';
+}
+function dismissAlert(){ alertMuted=true; var bar=$('alertBar'); if(bar) bar.className='alert-bar'; }
+
+async function loadRainRadar(){
+  try{
+    Lyr.rain.clearLayers();
+    if(rainTileLayer){ try{ map.removeLayer(rainTileLayer);}catch(e){} rainTileLayer=null; }
+    var meta=await fetchJSON('https://api.rainviewer.com/public/weather-maps.json',7000);
+    var host=meta.host||'https://tilecache.rainviewer.com';
+    var frames=((meta.radar&&meta.radar.past)||[]).concat((meta.radar&&meta.radar.nowcast)||[]);
+    if(!frames.length) return;
+    var last=frames[frames.length-1];
+    var url=host+last.path+'/256/{z}/{x}/{y}/2/1_1.png';
+    rainTileLayer=L.tileLayer(url,{opacity:0.65,zIndex:350,maxZoom:12,attribution:'RainViewer'});
+    Lyr.rain.addLayer(rainTileLayer);
+  }catch(e){ console.warn('rain',e); }
+}
+
+async function fetchEarthquakes(){
+  var list=$('eqList');
+  try{
+    Lyr.quake.clearLayers();
+    var since=new Date(Date.now()-24*3600*1000).toISOString().slice(0,19);
+    var north='https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime='+since+'&minmagnitude=2.5&minlatitude=5&maxlatitude=28&minlongitude=90&maxlongitude=115&orderby=time&limit=25';
+    var global='https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime='+since+'&minmagnitude=5.5&orderby=time&limit=15';
+    var results=await Promise.all([
+      fetchJSON(north,12000).catch(function(){return {features:[]};}),
+      fetchJSON(global,12000).catch(function(){return {features:[]};})
+    ]);
+    var seen={}, feats=[];
+    results.forEach(function(d){
+      (d.features||[]).forEach(function(f){
+        var id=f.id; if(id&&seen[id]) return; if(id) seen[id]=1; feats.push(f);
+      });
+    });
+    feats.sort(function(a,b){return (b.properties.time||0)-(a.properties.time||0);});
+    $('eqLive').textContent=feats.length?('LIVE '+feats.length):'–';
+    if(!feats.length){ list.innerHTML='<div class="row"><span>ไม่มีใน 24 ชม.</span></div>'; return; }
+    list.innerHTML=feats.slice(0,20).map(function(f){
+      var p=f.properties||{}, c=(f.geometry&&f.geometry.coordinates)||[];
+      var lat=c[1], lon=c[0], mag=p.mag, place=p.place||'';
+      var strong=mag>=5.5;
+      var col=mag>=6?'#ef4444':strong?'#f97316':mag>=4?'#eab308':'#38bdf8';
+      if(lat!=null) L.circleMarker([lat,lon],{radius:Math.max(5,Math.min(14,mag*2)),color:col,fillColor:col,fillOpacity:0.55,weight:1,opacity:0.85}).bindPopup('<b>M'+mag+'</b> '+place).addTo(Lyr.quake);
+      if(strong) pushAlert(mag>=6?'crit':'warn','แผ่นดินไหวรุนแรง M'+mag, place+' · USGS','USGS',lat,lon);
+      return '<div class="row" style="cursor:pointer" data-eq-lat="'+lat+'" data-eq-lon="'+lon+'"><span><b>M'+mag+'</b> '+place+'</span><span class="chip '+(strong?'warn':'info')+'">'+(strong?'รุนแรง':'ภูมิภาค')+'</span></div>';
+    }).join('');
+    list.querySelectorAll('[data-eq-lat]').forEach(function(el){
+      el.onclick=function(){ map.setView([parseFloat(el.getAttribute('data-eq-lat')),parseFloat(el.getAttribute('data-eq-lon'))],6); };
+    });
+  }catch(e){ console.warn('eq',e); if(list) list.innerHTML='<div class="row">โหลดไม่สำเร็จ</div>'; }
+}
+
+
+async function fetchThaiWaterRain(){
+  try{
+    var codeMap={cm:'50',cr:'57',lp:'52',ln:'51',mr:'58',nan:'55',ph:'56',pr:'54',ut:'53',tk:'63',st:'64',pl:'65',bkk:'10'};
+    var code=codeMap[cur.id]||'50';
+    var d=await fetchJSON('https://api-v3.thaiwater.net/api/v1/thaiwater30/public/thailand_main_rain?province_code='+code,10000);
+    var box=$('twBox');
+    var live=$('twLive');
+    if(!box) return;
+    var rows=d.data||[];
+    if(!rows.length){
+      box.innerHTML='<div class="row"><span>ไม่มีข้อมูลฝนสถานี</span></div>';
+      if(live) live.textContent='–';
+      return;
+    }
+    // sort by rain_24h desc
+    rows=rows.slice().sort(function(a,b){ return (b.rain_24h||0)-(a.rain_24h||0); });
+    var html='';
+    var maxR=0;
+    rows.slice(0,8).forEach(function(r){
+      var name=(r.station&&r.station.tele_station_name&&(r.station.tele_station_name.th||r.station.tele_station_name.en))||'สถานี';
+      var amph=(r.geocode&&r.geocode.amphoe_name&&r.geocode.amphoe_name.th)||'';
+      var r24=r.rain_24h!=null?r.rain_24h:0;
+      var r1=r.rain_1h!=null?r.rain_1h:0;
+      if(r24>maxR) maxR=r24;
+      var chip=r24>=50?'bad':r24>=20?'warn':'ok';
+      html+='<div class="row"><span><b>'+name+'</b><small>'+amph+(r.rainfall_datetime?' · '+String(r.rainfall_datetime).slice(0,16):'')+'</small></span><span class="chip '+chip+'">'+r24+' มม./24ชม</span></div>';
+      // map marker if lat lon
+      var lat=r.station&&r.station.tele_station_lat;
+      var lon=r.station&&r.station.tele_station_long;
+      if(lat!=null&&lon!=null){
+        L.circleMarker([lat,lon],{radius:5,color:'#38bdf8',fillColor:'#0ea5e9',fillOpacity:0.6,weight:1,opacity:0.8})
+          .bindPopup('<b>'+name+'</b><br>ฝน 24 ชม: '+r24+' มม.<br>ฝน 1 ชม: '+r1+' มม.').addTo(Lyr.water);
+      }
+    });
+    box.innerHTML=html;
+    if(live) live.textContent='LIVE';
+    if(maxR>=50) pushAlert('warn','ฝนหนักจากสถานี ThaiWater', maxR+' มม./24ชม ใน'+cur.n,'ThaiWater',cur.lat,cur.lon);
+  }catch(e){
+    console.warn('thaiwater',e);
+    var box=$('twBox'); if(box) box.innerHTML='<div class="row"><span>โหลด ThaiWater ไม่สำเร็จ</span></div>';
+    var live=$('twLive'); if(live) live.textContent='ERR';
+  }
+}
+
+async function fetchHIIFlashFlood(){
+  try{
+    var d=await fetchJSON('https://api.hii.or.th/v2/4UQaYnf0Bx4fXPYyCdDRbqHyXH9Ixvd2nVUjaN1cLBY=/warning/flashflood-24h',10000);
+    var box=$('hiiBox');
+    var live=$('hiiLive');
+    if(!box) return;
+    var areas=d.area||[];
+    var when=(d.date||'')+' '+(d.time||'');
+    if(live) live.textContent=areas.length?'เตือน '+areas.length:'ปกติ';
+    if(!areas.length){
+      box.innerHTML='<div class="row"><span>'+(d.noData||'ไม่พบพื้นที่เสี่ยงน้ำท่วมฉับพลัน 24 ชม.')+'</span><span class="chip ok">ปกติ</span></div>';
+      if(d.riskMap) box.innerHTML+='<div class="note"><a href="'+d.riskMap+'" target="_blank" rel="noopener">ดูแผนที่ความเสี่ยง HII</a></div>';
+      return;
+    }
+    var html='';
+    areas.slice(0,12).forEach(function(a){
+      var name=a.geocode_name||a.name||a.tambon||JSON.stringify(a).slice(0,40);
+      if(typeof a==='object'){
+        name=a.amphoe_name||a.tumbon_name||a.province_name||a.station_name||name;
+        if(a.geocode){
+          var g=a.geocode;
+          name=(g.amphoe_name&&g.amphoe_name.th)||(g.tumbon_name&&g.tumbon_name.th)||name;
+        }
+      }
+      html+='<div class="row"><span>⚠️ '+name+'</span><span class="chip warn">เสี่ยง 24ชม</span></div>';
+    });
+    box.innerHTML=html+'<div class="note">'+when+(d.riskMap?' · <a href="'+d.riskMap+'" target="_blank" rel="noopener">แผนที่เสี่ยง</a>':'')+'</div>';
+    pushAlert('warn','เตือนน้ำท่วมฉับพลัน (HII)', areas.length+' พื้นที่เสี่ยงใน 24 ชม.','สสน./HII',cur.lat,cur.lon);
+  }catch(e){
+    console.warn('hii',e);
+    var box=$('hiiBox'); if(box) box.innerHTML='<div class="row"><span>โหลด HII ไม่สำเร็จ</span></div>';
+    var live=$('hiiLive'); if(live) live.textContent='ERR';
+  }
+}
+
+
+function makeGistdaWms(path, opacity){
+  var base='https://api-gateway.gistda.or.th/api/2.0/resources/'+path;
+  return L.tileLayer.wms(base+'?api_key='+encodeURIComponent(GISTDA_KEY),{
+    layers:'0',
+    format:'image/png',
+    transparent:true,
+    opacity: opacity||0.75,
+    version:'1.1.1',
+    attribution:'GISTDA',
+    maxZoom:18,
+    zIndex:450
+  });
+}
+async function loadGISTDAFlood(){
+  try{
+    if(!GISTDA_KEY) return;
+    ['g1','g3','g7','gfreq','ghy','gistda'].forEach(function(k){
+      if(Lyr[k]) Lyr[k].clearLayers();
+    });
+    // WMS layers
+    try{
+      var w1=makeGistdaWms('maps/flood/1day/wms',0.78);
+      Lyr.g1.addLayer(w1);
+    }catch(e){ console.warn('g1',e); }
+    try{
+      var w3=makeGistdaWms('maps/flood/3days/wms',0.7);
+      Lyr.g3.addLayer(w3);
+    }catch(e){ console.warn('g3',e); }
+    try{
+      var w7=makeGistdaWms('maps/flood/7days/wms',0.65);
+      Lyr.g7.addLayer(w7);
+    }catch(e){ console.warn('g7',e); }
+    try{
+      var wf=makeGistdaWms('maps/flood-freq/wms',0.6);
+      Lyr.gfreq.addLayer(wf);
+    }catch(e){ console.warn('gfreq',e); }
+
+    // GeoJSON hyacinth + flood-freq polygons near province (limit)
+    try{
+      var hy=await fetchJSON('https://api-gateway.gistda.or.th/api/2.0/resources/features/water_hyacinth?api_key='+encodeURIComponent(GISTDA_KEY),12000);
+      var n=0, lat0=cur.lat, lon0=cur.lon;
+      ((hy&&hy.features)||[]).forEach(function(f){
+        if(n>=25) return;
+        try{
+          var layer=L.geoJSON(f,{style:{color:'#16a34a',weight:1,fillColor:'#4ade80',fillOpacity:0.35,opacity:0.8}});
+          var b=layer.getBounds&&layer.getBounds();
+          if(b&&b.isValid&&b.isValid()){
+            var c=b.getCenter();
+            if(Math.abs(c.lat-lat0)<3 && Math.abs(c.lng-lon0)<3){
+              layer.bindPopup('GISTDA ผักตบชวา / สิ่งกีดขวางทางน้ำ').addTo(Lyr.ghy);
+              n++;
+            }
+          }
+        }catch(e){}
+      });
+    }catch(e){ console.warn('hyacinth',e); }
+
+    // ensure visibility matches checkboxes
+    ['g1','g3','g7','gfreq','ghy'].forEach(function(k){
+      var inp=document.querySelector('input[data-lyr="'+k+'"]');
+      if(inp && !inp.checked){ if(map.hasLayer(Lyr[k])) map.removeLayer(Lyr[k]); }
+      else if(Lyr[k] && !map.hasLayer(Lyr[k])) map.addLayer(Lyr[k]);
+    });
+  }catch(e){ console.warn('gistda', e); }
+}
+
+
+async function fetchUrbanData(){
+  var pname = URBAN_PROV[cur.id] || '';
+  if(!pname){
+    var hb=$('urbanHotBox'); if(hb) hb.innerHTML='<div class="row"><span>จังหวัดนี้ยังไม่แมป API ทีม</span></div>';
+    return;
+  }
+  // Hotspots
+  try{
+    var h=await fetchJSON(URBAN_API+'/hotspots/summary?province='+encodeURIComponent(pname),12000);
+    var box=$('urbanHotBox');
+    var live=$('urbanHotLive');
+    var today=h.today||{};
+    var total=today.total||0;
+    if(live) live.textContent=total?('วันนี้ '+total):'0';
+    Lyr.fire.clearLayers();
+    var locs=today.locations||[];
+    var html='';
+    if(total===0 && (!locs || !locs.length)){
+      html='<div class="row"><span>ไม่พบจุดความร้อนในวันนี้</span><span class="chip ok">0</span></div>';
+    } else {
+      var types=today.fireTypes||{};
+      if(types && typeof types==='object' && !Array.isArray(types)){
+        Object.keys(types).forEach(function(k){
+          html+='<div class="row"><span>🔥 '+k+'</span><span class="chip warn">'+types[k]+'</span></div>';
+        });
+      }
+      var districts=today.districts||{};
+      if(districts && typeof districts==='object' && !Array.isArray(districts)){
+        Object.keys(districts).slice(0,8).forEach(function(k){
+          html+='<div class="row"><span>'+k+'</span><span class="chip">'+districts[k]+' จุด</span></div>';
+        });
+      }
+      (locs||[]).slice(0,40).forEach(function(p){
+        var lat=p.lat||p.latitude, lon=p.lon||p.lng||p.longitude;
+        if(lat==null||lon==null) return;
+        L.circleMarker([lat,lon],{radius:6,color:'#ef4444',fillColor:'#f97316',fillOpacity:0.75,weight:1,opacity:0.9})
+          .bindPopup('<b>จุดความร้อน</b><br>'+(p.name||p.district||pname)+'<br>UrbanData').addTo(Lyr.fire);
+      });
+      if(!html) html='<div class="row"><span>พบ '+total+' จุด</span><span class="chip warn">วันนี้</span></div>';
+    }
+    if(box) box.innerHTML=html;
+    if(total>=5) pushAlert('warn','จุดความร้อน UrbanData', total+' จุดใน'+cur.n,'UrbanData',cur.lat,cur.lon);
+  }catch(e){
+    console.warn('urban hotspots',e);
+    var box=$('urbanHotBox'); if(box) box.innerHTML='<div class="row"><span>โหลดจุดร้อนไม่สำเร็จ (SSL/เครือข่าย)</span></div>';
+    var live=$('urbanHotLive'); if(live) live.textContent='ERR';
+  }
+
+  // AQI summary from team API — enrich districts
+  try{
+    var a=await fetchJSON(URBAN_API+'/aqi/summary?province='+encodeURIComponent(pname),12000);
+    var today=a.today||{};
+    var districts=today.districts||{};
+    var vals=[];
+    Object.keys(districts).forEach(function(k){ var v=Number(districts[k]); if(!isNaN(v)) vals.push(v); });
+    if(vals.length){
+      var avg=Math.round(vals.reduce(function(x,y){return x+y;},0)/vals.length);
+      var max=Math.max.apply(null,vals);
+      // only override main AQI if CAMS missing or as secondary line
+      var line=$('aqLine');
+      if(line) line.textContent='UrbanData อำเภอ avg '+avg+' · สูงสุด '+max+' · '+cur.n;
+      if(max>=150) pushAlert('crit','AQI สูง (UrbanData)', 'สูงสุด '+max+' ใน'+cur.n,'UrbanData',cur.lat,cur.lon);
+      else if(max>=100) pushAlert('warn','AQI ปานกลาง–สูง (UrbanData)', 'สูงสุด '+max,'UrbanData',cur.lat,cur.lon);
+    }
+    // map locations if any
+    (today.locations||[]).slice(0,30).forEach(function(p){
+      var lat=p.lat||p.latitude, lon=p.lon||p.lng||p.longitude;
+      var aqi=p.aqi||p.us_aqi||p.value;
+      if(lat==null||lon==null||aqi==null) return;
+      L.circleMarker([lat,lon],{radius:7,color:aqiC(aqi),fillColor:aqiC(aqi),fillOpacity:0.7,weight:1})
+        .bindPopup('<b>AQI '+(aqi)+'</b><br>'+(p.name||p.district||'')+'<br>UrbanData').addTo(Lyr.water);
+    });
+  }catch(e){ console.warn('urban aqi',e); }
+
+  // Weather from team — optional fill if Open-Meteo failed
+  try{
+    var w=await fetchJSON(URBAN_API+'/weather/summary?province='+encodeURIComponent(pname),10000);
+    var t=w.today||{};
+    if(t.temp!=null && ($('temp').textContent==='–°' || $('temp').textContent.indexOf('–')===0)){
+      $('temp').textContent=Number(t.temp).toFixed(1)+'°';
+      if(t.wind_speed!=null) $('windSp').textContent=t.wind_speed+' กม./ชม.';
+      if(t.wind_label) $('windDir').textContent=t.wind_label;
+      if(t.pressure!=null) $('pres').textContent=Math.round(Number(t.pressure));
+      $('wxLine').textContent='UrbanData · '+(t.district_th||cur.n);
+      $('omLive').textContent='Urban';
+    }
+  }catch(e){ console.warn('urban weather',e); }
+}
+
+async function refreshAll(force){
+  if(loading&&!force) return;
+  loading=true;
+  var st=$('status');
+  if(st){ st.textContent='SYNC…'; st.className='badge warn'; }
+  var wd=setTimeout(function(){ loading=false; if(st&&st.textContent==='SYNC…'){ st.textContent='ONLINE'; st.className='badge ok'; } },20000);
+  try{
+    clearL();
+    populate();
+    Object.keys(Lyr).forEach(function(k){
+      var inp=document.querySelector('input[data-lyr="'+k+'"]');
+      if(inp && !inp.checked) map.removeLayer(Lyr[k]);
+      else if(!map.hasLayer(Lyr[k])) map.addLayer(Lyr[k]);
+    });
+
+    var lat=cur.lat, lon=cur.lon;
+    // Weather
+    try{
+      var d=await fetchJSON('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,surface_pressure&daily=precipitation_sum,precipitation_probability_max&timezone=Asia%2FBangkok&forecast_days=7',12000);
+      var c=d.current||{};
+      $('temp').textContent=(c.temperature_2m!=null?c.temperature_2m:'–')+'°';
+      $('hum').textContent=(c.relative_humidity_2m!=null?c.relative_humidity_2m:'–')+'%';
+      $('rainNow').textContent=(c.precipitation!=null?c.precipitation:0)+' มม.';
+      $('pres').textContent=c.surface_pressure?Math.round(c.surface_pressure):'–';
+      $('windSp').textContent=(c.wind_speed_10m!=null?c.wind_speed_10m:'–')+' กม./ชม.';
+      var wdir=c.wind_direction_10m;
+      $('windDir').textContent='ทิศ '+dirT(wdir)+(wdir!=null?' ('+Math.round(wdir)+'°)':'');
+      if(wdir!=null){
+        var needle=$('needle').querySelector('div');
+        if(needle) needle.style.transform='rotate('+wdir+'deg)';
+        var offsets=[[0,0],[0.04,0.03],[-0.04,0.03],[0.04,-0.03],[-0.04,-0.03]];
+        offsets.forEach(function(o,i){
+          L.marker([lat+o[0],lon+o[1]],{icon:windIco(wdir,c.wind_speed_10m||0)}).bindPopup(i===0?('ลม '+c.wind_speed_10m+' กม./ชม.'):'' ).addTo(Lyr.wind);
+        });
+      }
+      var rs=(d.daily&&d.daily.precipitation_sum)||[];
+      $('rainSum').textContent=rs.reduce(function(a,b){return a+b;},0).toFixed(1)+' มม.';
+      $('omLive').textContent='LIVE';
+      $('wxLine').textContent='Open-Meteo · '+cur.n;
+      var maxP=rs.length?Math.max.apply(null,rs):0;
+      var maxProb=((d.daily&&d.daily.precipitation_probability_max)||[0])[0]||0;
+      if(maxProb>=70) pushAlert('warn','โอกาสฝนสูงวันนี้', maxProb+'% · '+cur.n,'Open-Meteo',lat,lon);
+      if(maxP>=40) pushAlert('warn','ฝนสะสม 7 วันสูง', maxP.toFixed(1)+' มม.','Open-Meteo',lat,lon);
+      if(c.wind_speed_10m>=40) pushAlert('warn','ลมแรง', c.wind_speed_10m+' กม./ชม.','สภาพอากาศ',lat,lon);
+    }catch(e){ console.warn('wx',e); $('wxLine').textContent='อากาศโหลดไม่สำเร็จ'; }
+
+    // Air
+    try{
+      var aq=await fetchJSON('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+lat+'&longitude='+lon+'&current=pm2_5,pm10,us_aqi',10000);
+      var a=aq.current||{};
+      $('pm25').textContent=a.pm2_5!=null?Number(a.pm2_5).toFixed(1):'–';
+      $('pm10').textContent=a.pm10!=null?Number(a.pm10).toFixed(1):'–';
+      var aqi=a.us_aqi;
+      $('aqi').textContent=aqi!=null?aqi:'–';
+      $('aqi').style.color=aqiC(aqi);
+      $('aqLive').textContent='LIVE';
+      $('aqLine').textContent='CAMS · '+cur.n;
+      if(aqi>=150) pushAlert('crit','ฝุ่นสูง AQI '+aqi,'PM2.5 '+(a.pm2_5||'–'),'CAMS',lat,lon);
+      else if(aqi>=100) pushAlert('warn','ฝุ่นปานกลาง AQI '+aqi,'PM2.5 '+(a.pm2_5||'–'),'CAMS',lat,lon);
+    }catch(e){ console.warn('aq',e); }
+
+    // Flood chart (river discharge optional)
+    try{
+      var fl=await fetchJSON('https://flood-api.open-meteo.com/v1/flood?latitude='+lat+'&longitude='+lon+'&daily=river_discharge&forecast_days=7',10000);
+      var dis=(fl.daily&&fl.daily.river_discharge)||[];
+      var times=(fl.daily&&fl.daily.time)||[];
+      $('flLive').textContent='LIVE';
+      var maxD=dis.length?Math.max.apply(null,dis.filter(function(x){return x!=null;})) : 0;
+      var risk=maxD>500?'high':maxD>200?'med':'low';
+      var badge=$('riskBadge');
+      badge.className='risk '+risk;
+      badge.textContent='ความเสี่ยง: '+(risk==='high'?'สูง':risk==='med'?'ปานกลาง':'ต่ำ');
+      if(risk==='high') pushAlert('crit','ความเสี่ยงน้ำท่วมสูง','อัตราไหลสูง','Flood Model',lat,lon);
+      else if(risk==='med') pushAlert('warn','ความเสี่ยงน้ำท่วมปานกลาง','เฝ้าระวังพื้นที่ลุ่มต่ำ','Flood Model',lat,lon);
+      if(chart) chart.destroy();
+      var ctx=$('chart');
+      if(ctx && typeof Chart!=='undefined'){
+        chart=new Chart(ctx,{type:'bar',data:{labels:times.map(function(t){return t.slice(5);}),datasets:[{label:'m³/s',data:dis,backgroundColor:'rgba(56,189,248,.65)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b7a94',font:{size:8}},grid:{color:'#1a2438'}},y:{ticks:{color:'#6b7a94',font:{size:8}},grid:{color:'#1a2438'}}}}});
+      }
+    }catch(e){ console.warn('flood',e); }
+
+    // Longdo traffic index (free)
+    try{
+      var li=await fetchJSON('https://traffic.longdo.com/api/json/traffic/index',8000);
+      if(li&&li.index!=null){
+        window._longdoIndex=Number(li.index);
+        $('trafficLive').textContent='Longdo '+window._longdoIndex+'/10';
+        updateTrafficBox(TRAFFIC_ROADS[cur.id]||[]);
+      }
+    }catch(e){ console.warn('longdo',e); }
+
+    // Earthquakes
+    await fetchEarthquakes();
+    try{ await fetchThaiWaterRain(); }catch(e){console.warn(e);}
+    try{ await fetchHIIFlashFlood(); }catch(e){console.warn(e);}
+    loadGISTDAFlood().catch(function(e){console.warn(e);});
+    try{ await fetchUrbanData(); }catch(e){console.warn(e);}
+
+    // Background: rain radar (non-blocking)
+    loadRainRadar().catch(function(e){ console.warn(e); });
+
+    // RID dams sample text
+    $('dams').innerHTML='<div class="row"><span>ภูมิพล / สิริกิติ์</span><span class="chip info">ดู ThaiWater</span></div>';
+    $('ridLive').textContent='–';
+
+  }catch(e){
+    console.error(e);
+    if(st){ st.textContent='ERR'; st.className='badge err'; }
+  }finally{
+    clearTimeout(wd);
+    loading=false;
+    if(st && st.textContent==='SYNC…'){ st.textContent='ONLINE'; st.className='badge ok'; }
+    else if(st && st.textContent!=='ERR'){ st.textContent='ONLINE'; st.className='badge ok'; }
+    var clk=$('clock'); if(clk) clk.textContent=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    setTimeout(function(){ try{ map.invalidateSize(); }catch(e){} },200);
+  }
+}
+
+function initGPS(){
+  var g=$('gpsInfo');
+  if(!navigator.geolocation){ if(g) g.textContent='GPS ไม่รองรับ'; return; }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude, lon=pos.coords.longitude;
+    var best=null, bestD=1e9;
+    PROVS.forEach(function(p){
+      var d=Math.abs(p.lat-lat)+Math.abs(p.lon-lon);
+      if(d<bestD){ bestD=d; best=p; }
+    });
+    if(best && bestD<3){
+      cur=best;
+      var sel=$('provSelect'); if(sel) sel.value=cur.id;
+      if(g) g.textContent='จังหวัด: '+cur.n;
+      map.setView([cur.lat,cur.lon],cur.z);
+      refreshAll(true);
+    } else if(g) g.textContent='จังหวัด: '+cur.n;
+  }, function(){ if(g) g.textContent='GPS ไม่ได้ — ใช้ '+cur.n; }, {timeout:6000, maximumAge:120000});
+}
+
+// UI bindings
+$('btnRefresh').onclick=function(){ refreshAll(true); };
+$('btnDismiss').onclick=dismissAlert;
+$('btnClearAlerts').onclick=clearAllAlerts;
+$('layerHead').onclick=toggleLayers;
+document.querySelectorAll('[data-bm]').forEach(function(b){
+  b.onclick=function(){ setBm(b.getAttribute('data-bm')); };
+});
+document.querySelectorAll('input[data-lyr]').forEach(function(inp){
+  inp.onchange=function(){ tog(inp.getAttribute('data-lyr'), inp.checked); };
+});
+var sel=$('provSelect');
+PROVS.forEach(function(p){
+  var o=document.createElement('option');
+  o.value=p.id; o.textContent=p.n;
+  sel.appendChild(o);
+});
+sel.value=cur.id;
+sel.onchange=function(){
+  var p=PROVS.find(function(x){return x.id===sel.value;});
+  if(!p) return;
+  cur=p;
+  map.setView([cur.lat,cur.lon],cur.z);
+  refreshAll(true);
+};
+
+// Boot
+refreshAll(true);
+initGPS();
+setInterval(function(){ refreshAll(false); }, 5*60*1000);
+if(window.innerWidth<900){
+  var body=$('mapToolsBody');
+  if(body && !body.classList.contains('collapsed')){
+    body.classList.add('collapsed');
+    var chev=$('layerChev'); if(chev) chev.textContent='▶';
+  }
+}
+
+window.addEventListener('resize', function(){ setTimeout(function(){ map.invalidateSize(); },150); });
+
+
+}catch(errMap){
+  var el=document.getElementById("bootErr");
+  if(el){ el.style.display="block"; el.textContent="Map Error: "+errMap.message; }
+  console.error(errMap);
+}
+}); // end waitForLeaflet
+} catch(e) {
+  var el=document.getElementById("bootErr");
+  if(el){ el.style.display="block"; el.textContent="Boot Error: "+e.message; }
+  console.error(e);
+}
+</script>
+</body>
+</html>
